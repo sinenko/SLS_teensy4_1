@@ -32,28 +32,99 @@
 #ifndef MAIN_h
 #define MAIN_h
 
+
+#include "PrintSettings.h"
 #include <Arduino.h>
 //#include <HardwareSerial.h>
+#include <configuration.h>
 #include <CircularBuffer.h>
 #include <XY2_100.h>
 #include <LaserController.h>
-#include <Synrad48Ctrl.h>
+#include <CO2Laser.h>
 #include "Pins.h"
 #include "Helpers.h"
 #include "MotionMGR.h"
 #include "SerialCMDReader.h"
+#include "SDCardReader.h"
 
-#ifdef AXIS_INVERSE_X
+#define GALVO_CENTER_DEF 32767
+
+#ifdef INVERSE_X
   static bool AXIS_INVERSE_X = true;
 #else
   static bool AXIS_INVERSE_X = false;
 #endif
 
-#ifdef AXIS_INVERSE_Y
+#ifdef INVERSE_Y
   static bool AXIS_INVERSE_Y = true;
 #else
   static bool AXIS_INVERSE_Y = false;
 #endif
+
+
+#ifdef MAX_ANGLE_X
+  static double X_MAX_ANGLE = MAX_ANGLE_X;
+#else
+  static double X_MAX_ANGLE = 19.0;
+#endif
+
+#ifdef MAX_ANGLE_Y
+  static double Y_MAX_ANGLE = MAX_ANGLE_Y;
+#else
+  static double Y_MAX_ANGLE = 19.0;
+#endif
+
+#ifdef MIN_ANGLE_X
+  static double X_MIN_ANGLE = MIN_ANGLE_X;
+#else
+  static double X_MIN_ANGLE = -19.0;
+#endif
+
+#ifdef MIN_ANGLE_Y
+  static double Y_MIN_ANGLE = MIN_ANGLE_Y;
+#else
+  static double Y_MIN_ANGLE = -19.0;
+#endif
+
+#ifdef GALVO_X_CENTER
+  static int GALVO_X_CENTER_VAL = GALVO_X_CENTER;
+#else
+  static int GALVO_X_CENTER_VAL = GALVO_CENTER_DEF;
+#endif
+
+#ifdef GALVO_Y_CENTER
+  static int GALVO_Y_CENTER_VAL = GALVO_Y_CENTER;
+#else
+  static int GALVO_Y_CENTER_VAL = GALVO_CENTER_DEF;
+#endif
+
+
+#ifdef GALVO_X_MIN
+  static int GALVO_X_MIN_VAL = GALVO_X_MIN;
+#else
+  static int GALVO_X_MIN_VAL = 0;
+#endif
+
+#ifdef GALVO_Y_MIN
+  static int GALVO_Y_MIN_VAL = GALVO_Y_MIN;
+#else
+  static int GALVO_Y_MIN_VAL = 0;
+#endif
+
+#ifdef GALVO_X_MAX
+  static int GALVO_X_MAX_VAL = GALVO_X_MAX;
+#else
+  static int GALVO_X_MAX_VAL = 65535;
+#endif
+
+#ifdef GALVO_Y_MAX
+  static int GALVO_Y_MAX_VAL = GALVO_Y_MAX;
+#else
+  static int GALVO_Y_MAX_VAL = 65535;
+#endif
+
+
+
 
 void process();
 void setLaserPower(double PWM); 
@@ -61,6 +132,5 @@ void setGalvoPosition(double x, double y);
 bool ReadSerial5();
 void xinit_process_string(char instruction[]);
 void setNextFWDMSG(char MSG[150]);
-void printWelcome();
 
 #endif

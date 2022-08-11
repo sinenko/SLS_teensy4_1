@@ -31,9 +31,15 @@
 
 #ifndef SERIALCMDREADER_H
 #define SERIALCMDREADER_H
+
 #include <Arduino.h>
+#include "main.h"
 #include <CircularBuffer.h>
 #include "helpers.h"
+#include "SDCardReader.h"
+//#include "Ping.h"
+#include "PrintSettings.h"
+#include <string.h>
 
 #define COMMAND_SIZE 150
 
@@ -41,15 +47,28 @@
 class SerialCMDReader
 {
 	public:
-		SerialCMDReader(CircularBuffer<GCode, BUFFERSIZE> *buf);
+		SerialCMDReader(CircularBuffer<GCode, BUFFERSIZE> *buf, SDCardReader *sdreader);
     void begin();
     void stop(void);
     
     void handleSerial();
     GCode* process_string(char instruction[]);
+    GCode* parseCopyingString(char instruction[]);
+    
+    // void parseCopyingString(char inString[], char* outString, bool* isEndOfFile);
+
   private:
     int cnt = 0;
+    File _gcode_file;
+    bool _file_opened = false;
     CircularBuffer<GCode, BUFFERSIZE> *bufRef;
+    SDCardReader *_sdreaderRef;
+    int searchLetter(char *word, char letter);
+
+
+
+
+    
     double getVal(char chr , char *chArr, int length)
     {
       if(has_command(chr, chArr, length))
@@ -100,9 +119,8 @@ class SerialCMDReader
             || instruction[i] == 'X'
             || instruction[i] == 'Y'
             || instruction[i] == 'Z'
-            
-            )
-              break;
+              ) { break; } 
+
             temp[k] = instruction[i];
             i++;
             k++;

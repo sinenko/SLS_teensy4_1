@@ -22,17 +22,18 @@
 #pragma once
 
 #ifndef HELPERS_H
-#define BUFFERSIZE 50
+#define BUFFERSIZE 20
 #define DEFAULT_FEEDRATE 100
 #define MAX_VAL 2147483630
 #define LASER_IS_SYNRAD
-#define X_MAX_POS_MM 250
-#define Y_MAX_POS_MM 250
 #define LASER_MIN_PWM_PERCENT 10
 #define LASER_MAX 255
 #define LASER_RESOLUTION 12;
+#define COMMAND_SIZE 150
+#define MAX_FILENAME_LENGTH 128
+#define MAX_FILEPATH_LENGTH 256
 
-  uint64_t nanos();
+uint64_t nanos();
 
 struct coordinate {
   double x = MAX_VAL;
@@ -40,35 +41,38 @@ struct coordinate {
   double z = MAX_VAL;
 };
   
-  struct GCode {
+struct GCode {
 
   char codeprefix;
-  int code; // Go = 0 , G28 = 28 etc. Only G0 / G1 Supported so far...
+  int code = -1; // Go = 0 , G28 = 28 etc. Only G0 / G1 Supported so far...
   double x;
   double y;
   double z;
   double e;
 
-  double a;
-  double b;
-  double c;
+  //double a;
+  //double b;
+  // double c;
 
   double i;
   double j;
 
-  double p;
+  // double p;
 
   double s; // Laser Power
   double f; // FeedRate
-  double r; // Misc
-  double t; // Misc
-  double moveLengthNanos;
-  char FWD_CMD[150];
+
+  char* customCommand;
+
+  // double r; // Misc
+  // double t; // Misc
+  // double moveLengthNanos;
+  //char FWD_CMD[100]; // 150 default
 };
 
 
-void printDouble( double val, unsigned int precision);
+// void printDouble( double val, unsigned int precision);
 
 
-  #define HELPERS_H
+#define HELPERS_H
 #endif

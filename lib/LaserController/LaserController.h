@@ -21,14 +21,6 @@
 
 #pragma once
 
-#ifdef __AVR__
-#error "Sorry, this only works on 32 bit Teensy boards.  AVR isn't supported."
-#endif
-
-#if TEENSYDUINO < 121
-#error "Minimum PJRC Teensyduino version 1.21 is required"
-#endif
-
 #ifndef LASERCONTROLLER_h
 #define LASERCONTROLLER_h
 
@@ -37,11 +29,12 @@
 class LaserController   
 {
     public:
-      void virtual begin(int PWM_OUT_Pin, int PSU_SSR_Pin) = 0;
+      void virtual begin(int PWM_OUT_Pin, int ENABLE_Pin) = 0;
       void virtual stop() = 0;
       void virtual update(uint16_t pwm) = 0;
       void virtual update() = 0;
-      bool virtual isHalted();
+      void virtual on();
+      void virtual off();
 };
 
 #endif

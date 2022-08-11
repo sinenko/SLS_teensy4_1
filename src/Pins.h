@@ -24,9 +24,11 @@
 #ifndef PINS_H
   #define PINS_H
   
-  #define LASER_SSR_OUT_PIN 2
+  #define LASER_ENABLE_PIN 2
   #define GALVO_SSR_OUT_PIN 3
 
   #define LASER_PWM_OUT_PIN 6
+
+  #define SD_SELECT_PIN BUILTIN_SDCARD
 
 #endif

@@ -51,50 +51,38 @@ void Synrad48Ctrl::update()
   handleLaser();
 }
 
-void Synrad48Ctrl::begin(int PWM_OUT_Pin, int PSU_SSR_Pin)
+void Synrad48Ctrl::begin(int PWM_OUT_Pin, int ENABLE_Pin)
 {
-  if(_isHalted)
+  if(laserState != 30)
   {
-    if(laserState != 30)
-    {
-      // ERROR:
-      Serial.write("\nLaser begin error: Laser in unexpected state\n");
-    }
-    else
-    {
-      laserPWM_OUT_Pin = PWM_OUT_Pin;
-      laserPSU_SSR_Pin = PSU_SSR_Pin;
-      analogWriteResolution(LASER_RESOLUTION);
-      pinMode(laserPWM_OUT_Pin, OUTPUT);
-      pinMode(laserPSU_SSR_Pin, OUTPUT);
-      
-      digitalWrite(laserPSU_SSR_Pin,0);
-      analogWrite(laserPWM_OUT_Pin,0);
-      delay(laserInitTime + 10 );
-      digitalWrite(laserPSU_SSR_Pin,1);
-      // waist of recources - call handle laser at the beginning of each command instead. //t2.begin(this->handleLaser, 50); //50us = 20kHz
+    // ERROR: Serial.writeln("Laser begin error: Laser in unexpected state");
+  }
+  else
+  {
+    laserPWM_OUT_Pin = PWM_OUT_Pin;
+    laserEn_Pin = ENABLE_Pin;
+    analogWriteResolution(LASER_RESOLUTION);
+    pinMode(laserPWM_OUT_Pin, OUTPUT);
+    pinMode(laserEn_Pin, OUTPUT);
     
-      laserState = 0;
-      laserPWM = 0;
-      oldlaserPWM = 0;
-      _isHalted = false;
-    }
-
+    digitalWrite(laserEn_Pin,0);
+    analogWrite(laserPWM_OUT_Pin,0);
+    delay(laserInitTime + 10 );
+    digitalWrite(laserEn_Pin,1);
+    // waist of recources - call handle laser at the beginning of each command instead. //t2.begin(this->handleLaser, 50); //50us = 20kHz
+  
+    laserState = 0;
+    laserPWM = 0;
+    oldlaserPWM = 0;
   }
 }
 
 void Synrad48Ctrl::stop()
 {
   laserPWM = 0;
-  digitalWrite(laserPSU_SSR_Pin,0);
+  digitalWrite(laserEn_Pin,0);
   analogWrite(laserPWM_OUT_Pin,0);
   laserState = 30;
-  _isHalted = true;
-}
-
-bool Synrad48Ctrl::isHalted()
-{
-  return _isHalted;
 }
 
 bool Synrad48Ctrl::isInitiallized()
@@ -109,17 +97,11 @@ void Synrad48Ctrl::handleLaser()
 {
   if(isInitiallized())
   {
-    #ifdef PIN13_LED_INDICATES_LASER_READY
-    digitalWrite(13,1);
-    #endif
     if( laserPWM==oldlaserPWM) //Nothing changed
       return;
     if(laserPWM!=oldlaserPWM)
       oldlaserPWM = laserPWM;
   }
-  #ifdef PIN13_LED_INDICATES_LASER_READY
-  else digitalWrite(13,0);
-  #endif
 /*   |
  *  LaserStates:
  *       0 = BEGINWARMUP      - LaserEnable_Pin is HIGH, start the timer and go to warmup

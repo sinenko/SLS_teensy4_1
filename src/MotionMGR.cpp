@@ -4,16 +4,18 @@ XY2_100* _galvo;
 LaserController* _laser;
 GCode* currentGcode;
 
+
 MotionMGR::MotionMGR(CircularBuffer<GCode, BUFFERSIZE> *buf)
 {
   bufRef = buf;
 }
 
-void MotionMGR::begin(XY2_100* galvo, LaserController* laser)
+void MotionMGR::begin(XY2_100* galvo, LaserController* laser, SDCardReader* sdReader)
 {
   _galvo = galvo;
   _laser = laser;
   _status = IDLE;
+  _sdreader = sdReader;
 }
 
 MotionStatus MotionMGR::getStatus()
@@ -24,12 +26,18 @@ MotionStatus MotionMGR::getStatus()
 void MotionMGR::tic()
 {
   _NOW = nanos();
+  
   switch (_status) {
     case IDLE: processGcodes(); break;
     case INTERPOLATING: interpolateMove(); break;
     default: break;
   }
   setGalvoPosition(CURRENT_CMD_X, CURRENT_CMD_Y);
+
+  if (readingListFilesOnSD){
+    if(!_sdreader->printListOfFiles("/")) readingListFilesOnSD = false;
+  }
+
   if(CURRENT_LASERENABLED)
   {
     if(LASER_CHANGED)
@@ -45,62 +53,88 @@ void MotionMGR::tic()
 
 void MotionMGR::processMcode(GCode* code)
 {
-  #ifdef DEBUG_GCODES
-    Serial.print("Processing Mcode from Queue: \n");
-    Serial.print("code"); Serial.println(code->code);
-  #endif
   if(code->codeprefix == 'M') {
     //Handle MCodes
     switch (code->code)
     {
-    case 3:
-    case 4:
-    //M3 / M4
-      
-      setVal(&CURRENT_S, code->s);
-      CURRENT_LASERENABLED = true;
-      LASER_CHANGED = true;
-      break;
-    case 5:
-    //M5
-      CURRENT_LASERENABLED = false;
-      break;
-    case 9:
-      setNextFWDMSG(code->FWD_CMD);
-      //TODO: Should set a 'WaitForM400Sync' Flag.
-      return;
-      
-    case 17:
-    //M17
-      digitalWrite(GALVO_SSR_OUT_PIN,1);
-      return;
-    case 18:
-    //M18
-      digitalWrite(GALVO_SSR_OUT_PIN,0);
-      return;
-
-    case 80:
-    //M80
-    Serial.print("Set 1 high");
-      digitalWrite(LASER_SSR_OUT_PIN,1);
-      if(_laser->isHalted())
-      {
-        delay(250);
-        _laser->begin(LASER_PWM_OUT_PIN,LASER_SSR_OUT_PIN);
-      }
-      return;
-    case 81:
-    //M81
-    Serial.print("Set 1 low");
-      digitalWrite(LASER_SSR_OUT_PIN,0);
-      if(!_laser->isHalted())
-      {
-        _laser->stop();
-      }
-      return;
+      case 3:
+      case 4:
+      //M3 / M4
+        setVal(&CURRENT_S, code->s);
+        CURRENT_LASERENABLED = true;
+        LASER_CHANGED = true;
+        break;
+      case 5:
+      //M5
+        CURRENT_LASERENABLED = false;
+        break;
         
-    default:
-      break;
+      case 17:
+      //M17
+        digitalWrite(GALVO_SSR_OUT_PIN,1);
+        return;
+      case 18:
+      //M18
+        digitalWrite(GALVO_SSR_OUT_PIN,0);
+        return;
+
+      case 80:
+      //M80
+        _laser->on();
+        return;
+      case 81:
+      //M81
+        _laser->off();
+        return;
+      case 110:
+        Serial.println("ok");
+        break;
+      case 115:
+        Serial.println("ok PROTOCOL_VERSION:0.1 FIRMWARE_NAME:FiveD MACHINE_TYPE:Mendel EXTRUDER_COUNT:1");
+        break;
+      case 105:
+        Serial.println("ok T:777 C:666");
+        break;
+      case 20:
+        readingListFilesOnSD = true;
+        PrintSettings::isCopying = false;
+        break;
+      case 21:
+        _sdreader->init();
+        break;
+      case 22:
+        _sdreader->SDInited = false;
+        Serial.println("ok");
+        break;      
+      case 23:
+        strcpy(PrintSettings::currentPrintingFile, currentGcode->customCommand); 
+
+        if(!PrintSettings::isPrinting){
+          PrintSettings::isPrinting = true;
+          _sdreader->openFileRead(PrintSettings::currentPrintingFile);
+          Serial.println("ok");
+        }
+        break;     
+      case 28:
+        strcpy(PrintSettings::currentCopyingFile, currentGcode->customCommand); 
+        if(!PrintSettings::isCopying){
+          PrintSettings::isCopying = true;
+          _sdreader->createFileAndOpenToWrite(PrintSettings::currentCopyingFile);
+          Serial.println("ok");
+        }
+        break;
+      case 29:
+        PrintSettings::isCopying = false;
+        _sdreader->closeFile();
+        Serial.println("ok");
+        break;      
+      case 30:
+        _sdreader->deleteFileOnSD(currentGcode->customCommand);
+        Serial.println("ok");
+        break;
+      default:
+        Serial.println("ok");
+        break;
     }
   }
   else  {
@@ -120,13 +154,16 @@ void MotionMGR::processMcode(GCode* code)
     }
   }
 }
+
+
 bool MotionMGR::processGcodes()
 {
   bool gcodeFound = false;
   if(!bufRef->isEmpty())
-  {
+  { 
     currentGcode = new GCode((bufRef->pop()));
-    if(!(
+    // Упростить условие можно
+    if(!( 
       (*currentGcode).codeprefix == 'G' && (
             (*currentGcode).code == 0 ||
             (*currentGcode).code == 1 ||
@@ -140,30 +177,14 @@ bool MotionMGR::processGcodes()
     {
       processGcode(currentGcode);
     }
-    gcodeFound = true;     
+    gcodeFound = true; 
+
     delete currentGcode;
   }
   return gcodeFound;
 }
 void MotionMGR::processGcode(GCode* code)
 {
-
-  // Serial.print("\n CURRENT_ABSOLUTE: ");Serial.print(CURRENT_ABSOLUTE);
-  // Serial.print("\n CURRENT_S: ");Serial.print(CURRENT_S);
-  // Serial.print("\n CURRENT_F: ");Serial.print(CURRENT_F);
-  // Serial.print("\n CURRENT_J: ");Serial.print(CURRENT_J);
-  // Serial.print("\n CURRENT_I: ");Serial.print(CURRENT_I);
-  // Serial.print("\n CURRENT_TO_X: ");Serial.print(CURRENT_TO_X);
-  // Serial.print("\n CURRENT_TO_Y: ");Serial.print(CURRENT_TO_Y);
-  // Serial.print("\n CURRENT_TO_Z: ");Serial.print(CURRENT_TO_Z);
-  // Serial.print("\n CURRENT_CMD_X: ");Serial.print(CURRENT_CMD_X);
-  // Serial.print("\n CURRENT_CMD_Y: ");Serial.print(CURRENT_CMD_Y);
-  // Serial.print("\n CURRENT_CMD_Z: ");Serial.print(CURRENT_CMD_Z);
-  // Serial.print("\n CURRENT_FROM_X: ");Serial.print(CURRENT_FROM_X);
-  // Serial.print("\n CURRENT_FROM_Y: ");Serial.print(CURRENT_FROM_Y);
-  // Serial.print("\n CURRENT_FROM_Z: ");Serial.print(CURRENT_FROM_Z);
-  // Serial.print("\n CURRENT_CODE: ");Serial.print(CURRENT_CODE);
-
   double new_S = 0;
   setVal(&new_S, code->s);
   LASER_CHANGED = new_S != CURRENT_S;
@@ -172,6 +193,7 @@ void MotionMGR::processGcode(GCode* code)
   switch (code->code) {
     case 0:
       CURRENT_CODE = 0;
+      setVal(&CURRENT_F, code->f);
       setXY(code);
       break;
    case 1:
@@ -180,32 +202,6 @@ void MotionMGR::processGcode(GCode* code)
       setVal(&CURRENT_S, code->s);
       setXY(code);
       break;
-      //TODO: Add G2 / G3 Implementation
-    /* case 2:
-      CURRENT_CODE = 2;
-      setVal(&CURRENT_F, code->f);
-      setVal(&CURRENT_S, code->s);
-      setVal(&CURRENT_I, code->i);
-      setVal(&CURRENT_J, code->j);
-      setXYZ(code);
-      //NOT IMPLEMENTED
-      return;
-      break;
-    case 3:
-      CURRENT_CODE = 3;
-      setVal(&CURRENT_F, code->f);
-      setVal(&CURRENT_S, code->s);
-      setVal(&CURRENT_I, code->i);
-      setVal(&CURRENT_J, code->j);
-      setXYZ(code);
-      //NOT IMPLEMENTED
-      return;
-      break;
-    case 4:
-      CURRENT_CODE = 4;
-      //NOT IMPLEMENTED
-      return;
-      break; */
     case 28:
       CURRENT_CODE = 28;
       CURRENT_TO_X = 0;
@@ -304,8 +300,9 @@ void MotionMGR::interpolateMove()
  */
 void MotionMGR::calculateMoveLengthNanos(double xdist, double ydist, double moveVelocity, double* result)  {  
   //TODO: Verify unit conversions
+
   double lengthOfMove = sqrt( (0.0 + xdist)*(0.0 + xdist)  + (0.0 + ydist)*(0.0 + ydist) ); 
-  *result = ((lengthOfMove*1000*1000*1000/moveVelocity));  
+  *result = ((lengthOfMove*1000*1000*1000/ (moveVelocity)));  
   return;
 }
 

@@ -38,10 +38,9 @@
 class Synrad48Ctrl : public LaserController {
 	public:
 		Synrad48Ctrl();
-    void begin(int PWM_OUT_Pin, int PSU_SSR_Pin);
+    void begin(int PWM_OUT_Pin, int ENABLE_Pin);
     void stop(void);
     bool isInitiallized();
-    bool isHalted();
 		void handleLaser();
 		void update(uint16_t PWM);
 		void update();
@@ -49,17 +48,16 @@ class Synrad48Ctrl : public LaserController {
 	private:
     int                     laserState;
     uint16_t                laserPWM_OUT_Pin; // = LASER_OUT_PIN;
-    uint16_t                laserPSU_SSR_Pin; // = 10;
+    uint16_t                laserEn_Pin; // = 10;
     
     bool                    laser_Shutter       = false;
-    const static uint16_t   ticklePWM           = 21;
+    const static uint16_t   ticklePWM           = 4;
     int                     laserPWM            = 0;
     int                     laserPWMLowerLimit  = 50;
     uint32_t                tickleStart         = 0x0;
     uint32_t                laserInitTime       = {0x1388}; //Millis to wait in warmup state / Tickle state during init
     int                     currentFreq         = 0;
-    int                     oldlaserPWM         = 0;
-    bool                    _isHalted            = true;
+    int                  oldlaserPWM         = 0;
 
 void set20kPWM(int PWM) {
   if(currentFreq != 20000) {

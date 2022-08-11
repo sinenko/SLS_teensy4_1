@@ -34,8 +34,8 @@
 
 #include <Arduino.h>
 #include "Helpers.h"
-#include "configuration.h"
 #include "main.h"
+#include "SDCardReader.h"
 
 
 enum MotionStatus {IDLE, INTERPOLATING};
@@ -44,11 +44,12 @@ class MotionMGR
 {
 public:
   MotionMGR(CircularBuffer<GCode, BUFFERSIZE> *buf);
-  void begin(XY2_100 *galvo, LaserController *laser);
+  void begin(XY2_100 *galvo, LaserController *laser, SDCardReader* sdReader);
   void tic();
   MotionStatus getStatus();
 
 private:
+  SDCardReader *_sdreader;
   MotionStatus _status;
   void processMcode(GCode* code);
   void processGcode(GCode* code);
@@ -62,6 +63,7 @@ private:
   CircularBuffer<GCode, BUFFERSIZE> mBuf;
 
   bool isMoveFirstInterpolation = true;
+  bool readingListFilesOnSD = false;
 
   uint64_t CURRENT_STARTNANOS = 0;
   uint64_t CURRENT_ENDNANOS = 0;

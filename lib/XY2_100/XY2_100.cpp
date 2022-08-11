@@ -155,24 +155,22 @@ void XY2_100::QT1_isr() {
   ClkHiLo = !ClkHiLo;
 }
 
-unsigned long XY2_100::buildMsg(uint16_t data)
+unsigned long XY2_100::buildMsg(uint16_t data) // 5000
 {
   unsigned long msg = 0;
-  msg = msg | 0;
-  msg = msg << 1;  msg = msg | 0;
-  msg = msg << 1;  msg = msg | 1;
-  msg = msg << 16; msg = msg | data;
-  msg = msg << 1; msg = msg | XY2_100::parity(data);
+  msg = 1 << 16; msg = msg | data; // 70 536
+  msg = msg << 1; // 141 072
+  msg = msg | XY2_100::parity(data); // 141 073
   //msg = msg << 1; msg = msg | 1;
   return msg;
 }
 
-uint8_t XY2_100::parity(uint16_t v)
+uint8_t XY2_100::parity(uint16_t v) // 5000
 {
-    uint8_t t = (uint8_t) v ^ v >> 8;
-    t ^= t >> 4;
-    t ^= t >> 2;
-    t ^= t >> 1;
+    uint8_t t = (uint8_t) v ^ v >> 8; //5019
+    t ^= t >> 4; // 4770
+    t ^= t >> 2; // 5642
+    t ^= t >> 1; // 7439
     return (t & 1);
 }
 

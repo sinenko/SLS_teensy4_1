@@ -1,43 +1,58 @@
-/*
-  Helpers.h - Helper functions to be used by OPAL FW on PJRC Teensy 4.x board
-
-  Part of OpenGalvo - OPAL Firmware
-
-  Copyright (c) 2020-2021 Daniel Olsson
-
-  OPAL Firmware is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  OPAL Firmware is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with OPAL Firmware.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #pragma once
 #ifndef CONFIGURATION_H
 
-#define DEBUG_GCODES
-
-#define CMDBUFFERSIZE 50 //Number of cashed GCodes
-#define MBUFFERSIZE 20  //Buffersize for MCODES - number of consecutive M-Codes before another G-Code
+//#define CMDBUFFERSIZE 100 //Number of cashed GCodes
+//#define MBUFFERSIZE 20  //Buffersize for MCODES - number of consecutive M-Codes before another G-Code
 #define DEFAULT_FEEDRATE 100
 
-#define LASER_IS_SYNRAD
+//#define LASER_IS_SYNRAD
 #define LASER_RESOLUTION 12
-#define LASER_PWM_MAX 50
+//#define LASER_PWM_MAX 50
 //#define LASER_G0_OFF_G1_ON
 
-#define X_MAX 250 //mm
-#define Y_MAX 250 //mm
 
-#define INVERSE_X
-//#define INVERSE_Y
+#define GALVO_X_CENTER ((36352+256))
+#define GALVO_Y_CENTER ((33536+256))
+
+//Растояние между осями зеркал
+#define XY_SHIFTS_LEN 13.5
+
+//Растояние от Y зеркала (которое дальше от лазера) до края корпуса сканатор (при услови что зеркало в центре)
+#define Y_RAY_FROM_SHIFT 22.4
+
+//Растояние от края сканатора до стола (от сканатора до ДСП + толщина ДСП + от ДСП до стола)
+#define Y_RAY_FROM_BODY ((48.24 + 16.3 + 316.5))
+
+//Растояние от Y зеркала (которое дальше от лазера) до стола (при услови что зеркало в центре)
+#define Y_RAY_LENGTH ((Y_RAY_FROM_SHIFT+Y_RAY_FROM_BODY))  //403.44
+
+//Размеры получившизся сторон после центровки зеркал
+#define LEN_X_DEFAULT 265 
+#define LEN_Y_DEFAULT 275
+
+//Область печати
+#define PRINT_AREA_X 210
+#define PRINT_AREA_Y 210
+
+#define LEN_X_MM 265 //265.0
+#define LEN_Y_MM 275 //275.0 
+
+#define MAX_ANGLE_X (atan((LEN_X_MM/2.0)/Y_RAY_LENGTH)) //18.182 C
+#define MAX_ANGLE_Y (atan((LEN_Y_MM/2.0)/Y_RAY_LENGTH)) //18.82 C
+#define MIN_ANGLE_X ((-1.0)*MAX_ANGLE_X) //-18.182 C
+#define MIN_ANGLE_Y ((-1.0)*MAX_ANGLE_Y) //-18.82 C
+
+
+
+
+#define X_MIN 0 //mm
+#define Y_MIN 0 //mm
+
+#define X_MAX LEN_X_MM //mm
+#define Y_MAX LEN_Y_MM //mm
+
+//#define INVERSE_X
+#define INVERSE_Y
 
 #define CONFIGURATION_H
 #endif
